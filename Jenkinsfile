@@ -3,28 +3,30 @@ node('master') {
     checkout scm
      echo "Poll"
   }
-  stage('Build & Unit test') {
+  stage('Build'){
     withMaven(maven: 'M3') {
-        sh 'mvn clean test-compile surefire:test';
+      sh 'mvn clean package -Dmaven.test.skip=true'
     }
-    junit '**/target/surefire-reports/TEST-*.xml'
-    archive 'target/*.jar'
-    echo "Build & Unit test"
   }
-  stage('Static Code Analysis') {
-    withMaven(maven: 'M3') {
-        sh 'mvn clean verify sonar:sonar -Dsonar.host.url=http://172.30.15.216:9000 -Dsonar.projectName=oven -Dsonar.projectKey=oven -Dsonar.projectVersion=$BUILD_NUMBER'
-    }
-    echo "Static Code Analysis"
+  stage('Results'){
+    archiveArtifacts: 'target/hello.jar'
   }
-  stage('Integration Test') {
-    withMaven(maven: 'M3') {
-        sh 'mvn clean test-compile failsafe:integration-test';
-    }
-    junit '**/target/failsafe-reports/TEST-*.xml'
-    archive 'target/*.jar'
-    echo "Integration Test"
+  stage('stash') {
+    stash includes: 'target/hello.jar,src/pt/Hello_World_Test_Plan.jmx',
+    name: 'binary'
   }
 }
-
-
+node('docker_pt'){
+  // stage('Start Tomcat') {
+  //   sh '''cd /home/jenkins/tomcat/bin
+  //    ./startup.sh''';
+  // }
+  stage('Deploy'){
+    unstash 'binary',
+    sh 'cp target/hello.jar /tmp/';
+  }
+  stage('Performance Testing'){
+    sh 'java -jar /tmp/target/hello.jar';
+    step([$class: 'ArtifactArchiver', artifacts: '**/*.jtl'])
+  }
+}
