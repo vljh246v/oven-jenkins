@@ -17,10 +17,6 @@ node('master') {
   }
 }
 node('docker_pt'){
-  // stage('Start Tomcat') {
-  //   sh '''cd /home/jenkins/tomcat/bin
-  //    ./startup.sh''';
-  // }
   stage('Deploy'){
     unstash 'binary',
     sh 'cp target/hello.jar /tmp/';
