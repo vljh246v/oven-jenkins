@@ -5,24 +5,21 @@ node('master') {
   }
   stage('Build'){
     withMaven(maven: 'M3') {
-      sh 'mvn clean package -Dmaven.test.skip=true'
+      sh 'mvn clean install compile package -DskipTests'
     }
   }
-  stage('Results'){
-    archiveArtifacts: 'target/hello.jar'
-  }
   stage('stash') {
-    stash includes: 'target/hello.jar,src/pt/Hello_World_Test_Plan.jmx',
+    stash includes: 'target/oven-0.0.1-SNAPSHOT.jar,src/pt/Hello_World_Test_Plan.jmx',
     name: 'binary'
   }
 }
 node('docker_pt'){
   stage('Deploy'){
-    unstash 'binary',
-    sh 'cp target/hello.jar /tmp/';
+    unstash 'binary'
   }
   stage('Performance Testing'){
-    sh 'java -jar /tmp/target/hello.jar';
+    sh 'java -jar target/oven-0.0.1-SNAPSHOT.jar';
     step([$class: 'ArtifactArchiver', artifacts: '**/*.jtl'])
   }
 }
+
